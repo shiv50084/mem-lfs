@@ -3,6 +3,16 @@
 
 #include "lfs.h"
 
+int mem_thread_mount(unsigned fs_id, lfs_t *lfs,
+                     const struct lfs_config *config);
+
+int mem_thread_unmount(unsigned fs_id, lfs_t *lfs);
+
+int mem_thread_format(unsigned fs_id, lfs_t *lfs,
+                      const struct lfs_config *config);
+
+int mem_thread_remove(unsigned fs_id, lfs_t *lfs, const char *path);
+
 int mem_thread_open(unsigned fs_id, lfs_t *lfs, lfs_file_t *file,
                     const char *path, int flags);
 
