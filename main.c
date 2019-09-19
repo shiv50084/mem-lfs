@@ -62,6 +62,33 @@ static void *task_4_handler(void *arg);
 lfs_t fs;
 lfs_t fs2;
 
+static int init_fs(void)
+{
+    cfg.context = memory_storage_get();
+    if (mem_thread_mount(MEM1, &fs, &cfg) != LFS_ERR_OK)
+    {
+        mem_thread_format(MEM1, &fs, &cfg);
+
+        if (mem_thread_mount(MEM1, &fs, &cfg) != LFS_ERR_OK)
+        {
+            return 1;
+        }
+    }
+
+    cfg2.context = memory_storage2_get();
+    if (mem_thread_mount(MEM2, &fs2, &cfg2) != LFS_ERR_OK)
+    {
+        mem_thread_format(MEM2, &fs2, &cfg2);
+
+        if (mem_thread_mount(MEM2, &fs2, &cfg2) != LFS_ERR_OK)
+        {
+            return 2;
+        }
+    }
+
+    return 0;
+}
+
 int main()
 {
     pthread_t task_1;
@@ -83,26 +110,9 @@ int main()
         printf("%s: Unable to restore memory dump\n", __func__);
     }
 
-    cfg.context = memory_storage_get();
-    if (lfs_mount(&fs, &cfg) != LFS_ERR_OK)
+    if (init_fs() != 0)
     {
-        lfs_format(&fs, &cfg);
-
-        if (lfs_mount(&fs, &cfg) != LFS_ERR_OK)
-        {
-            return 1;
-        }
-    }
-
-    cfg2.context = memory_storage2_get();
-    if (lfs_mount(&fs2, &cfg2) != LFS_ERR_OK)
-    {
-        lfs_format(&fs2, &cfg2);
-
-        if (lfs_mount(&fs2, &cfg2) != LFS_ERR_OK)
-        {
-            return 2;
-        }
+        return 2;
     }
 
     pthread_create(&task_1, NULL, task_1_handler, NULL);
