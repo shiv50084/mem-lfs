@@ -13,6 +13,9 @@ int mem_thread_format(unsigned fs_id, lfs_t *lfs,
 
 int mem_thread_remove(unsigned fs_id, lfs_t *lfs, const char *path);
 
+int mem_thread_rename(unsigned fs_id, lfs_t *lfs, const char *oldpath,
+                      const char *newpath);
+
 int mem_thread_open(unsigned fs_id, lfs_t *lfs, lfs_file_t *file,
                     const char *path, int flags);
 
