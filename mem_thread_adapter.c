@@ -72,3 +72,23 @@ lfs_ssize_t mem_thread_write_f(unsigned fs_id, lfs_t *lfs, lfs_file_t *file,
     return LOCKED_OP(get_mutex_by_id(fs_id), lfs_file_write, lfs, file, buffer,
                      size);
 }
+
+lfs_ssize_t mem_thread_getattr(unsigned fs_id, lfs_t *lfs, const char *path,
+                               uint8_t type, void *buffer, lfs_size_t size)
+{
+    return LOCKED_OP(get_mutex_by_id(fs_id), lfs_getattr, lfs, path, type,
+                     buffer, size);
+}
+
+int mem_thread_setattr(unsigned fs_id, lfs_t *lfs, const char *path,
+                       uint8_t type, const void *buffer, lfs_size_t size)
+{
+    return LOCKED_OP(get_mutex_by_id(fs_id), lfs_setattr, lfs, path, type,
+                     buffer, size);
+}
+
+int mem_thread_removeattr(unsigned fs_id, lfs_t *lfs, const char *path,
+                          uint8_t type)
+{
+    return LOCKED_OP(get_mutex_by_id(fs_id), lfs_removeattr, lfs, path, type);
+}
