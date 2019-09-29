@@ -219,6 +219,40 @@ exit:
     return retval;
 }
 
+static int test_attribute(unsigned fs_id, const char *filename,
+                          unsigned char attr_type, void *buffer,
+                          size_t buffer_size)
+{
+    lfs_t *pfs = (fs_id == MEM1) ? &fs : &fs2;
+    int retval = 0;
+
+    if ((retval = mem_thread_setattr(fs_id, pfs, filename, attr_type, buffer,
+                                     buffer_size)) != LFS_ERR_OK)
+    {
+        printf("%s: Error attribute set [%d]\n", __func__, retval);
+        return retval;
+    }
+
+    unsigned char _tmp_buf[buffer_size];
+
+    memset(_tmp_buf, 0, buffer_size);
+
+    if ((retval = mem_thread_getattr(fs_id, pfs, filename, attr_type, _tmp_buf,
+                                     buffer_size)) < LFS_ERR_OK)
+    {
+        printf("%s: Error attribute get [%d]\n", __func__, retval);
+        return retval;
+    }
+
+    if (memcmp(_tmp_buf, buffer, retval) != 0)
+    {
+        printf("%s: Attribute differs\n", __func__);
+        return -1;
+    }
+
+    return retval;
+}
+
 static void *task_1_handler(void *arg)
 {
     lfs_file_t file = {0};
