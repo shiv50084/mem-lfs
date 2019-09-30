@@ -266,6 +266,8 @@ static void *task_1_handler(void *arg)
         "eejXKiGqZEegaMXqWDUUfqftvArCYURPjxDOHtkhmmjMGzHNwWiSxczpMkbRGtyfStTkhb"
         "yjMhTAjEVdgzCXMqFWtCUd";
     char buf[512];
+    unsigned char fs_attr = 22;
+    char attr_buf[] = "Attribute data";
 
     for (size_t i = 0; i < 128 * 64; ++i)
     {
