@@ -297,6 +297,12 @@ static void *task_1_handler(void *arg)
         {
             printf("%s: Content equal\n", __func__);
         }
+
+        if (test_attribute(MEM1, "file1", fs_attr, attr_buf,
+                           strlen(attr_buf)) < LFS_ERR_OK)
+        {
+            printf("%s: Attribute error\n", __func__);
+        }
     }
 exit:
     pthread_exit(NULL);
