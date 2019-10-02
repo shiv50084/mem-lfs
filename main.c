@@ -310,6 +310,9 @@ exit:
 
 static void *task_2_handler(void *arg)
 {
+    const char *filename1 = "file2";
+    const char *filename2 = "file3";
+    const char *fname = filename1;
     lfs_file_t file = {0};
     const char *str =
         "qvAGTsWClryChbcMZxwaYTJrRFNWMxtREnKiCMRKrJbNrIFLmocLgNISBWWinLMTYjscrc"
