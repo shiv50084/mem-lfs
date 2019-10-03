@@ -337,7 +337,7 @@ static void *task_2_handler(void *arg)
         }
 
         retval =
-            file_read(MEM1, "file2", (unsigned char *)buf, strlen(str), &file);
+            file_read(MEM1, fname, (unsigned char *)buf, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
