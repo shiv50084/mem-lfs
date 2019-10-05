@@ -353,6 +353,25 @@ static void *task_2_handler(void *arg)
         {
             printf("%s: Content equal\n", __func__);
         }
+
+        const char *new_fname = (i % 2 == 0) ? filename2 : filename1;
+
+        if (mem_thread_rename(MEM1, &fs, fname, new_fname) != LFS_ERR_OK)
+        {
+            printf("%s: Rename error\n", __func__);
+        }
+
+        fname = new_fname;
+    }
+
+    if (mem_thread_remove(MEM1, &fs, "file2") != LFS_ERR_OK)
+    {
+        printf("%s: File 2 remove error\n", __func__);
+    }
+
+    if (mem_thread_remove(MEM1, &fs, "file3") != LFS_ERR_OK)
+    {
+        printf("%s: File 3 remove error\n", __func__);
     }
 exit:
     pthread_exit(NULL);
