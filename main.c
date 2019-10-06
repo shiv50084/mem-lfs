@@ -394,7 +394,7 @@ static void *task_3_handler(void *arg)
     for (size_t i = 0; i < 128 * 64; ++i)
     {
         int retval =
-            file_write(MEM2, "file1", (unsigned char *)str, strlen(str), &file);
+            file_write(MEM2, "file4", (unsigned char *)str, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
