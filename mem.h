@@ -8,6 +8,9 @@
 #define MEMORY_BLOCK_SIZE (2048UL)
 #define MEMORY_BLOCK_COUNT (MEMORY_STORAGE_SIZE / MEMORY_BLOCK_SIZE)
 
+#define MEM1 1
+#define MEM2 2
+
 int memory_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
                 void *buffer, lfs_size_t size);
 

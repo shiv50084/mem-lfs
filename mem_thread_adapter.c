@@ -3,69 +3,44 @@
 
 #include <pthread.h>
 
-static pthread_mutex_t mem_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t global_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutexattr_t m_attr;
+static pthread_mutex_t global_lock2 = PTHREAD_MUTEX_INITIALIZER;
 
-#define LOCKED_OP(lock, fun, ...)                                              \
+#define LOCKED_OP(plock, fun, ...)                                             \
     ({                                                                         \
-        pthread_mutex_lock(&lock);                                             \
+        pthread_mutex_lock(plock);                                             \
         int __retval = fun(__VA_ARGS__);                                       \
-        pthread_mutex_unlock(&lock);                                           \
+        pthread_mutex_unlock(plock);                                           \
         __retval;                                                              \
     })
 
-// Read a region in a block. Negative error codes are propogated
-// to the user.
-int mem_thread_read(const struct lfs_config *c, lfs_block_t block,
-                    lfs_off_t off, void *buffer, lfs_size_t size)
+static pthread_mutex_t *get_mutex_by_id(unsigned id)
 {
-    return LOCKED_OP(mem_lock, memory_read, c, block, off, buffer, size);
+    return id == MEM1 ? &global_lock : &global_lock2;
 }
 
-// Program a region in a block. The block must have previously
-// been erased. Negative error codes are propogated to the user.
-// May return LFS_ERR_CORRUPT if the block should be considered bad.
-int mem_thread_prog(const struct lfs_config *c, lfs_block_t block,
-                    lfs_off_t off, const void *buffer, lfs_size_t size)
+int mem_thread_open(unsigned fs_id, lfs_t *lfs, lfs_file_t *file,
+                    const char *path, int flags)
 {
-    return LOCKED_OP(mem_lock, memory_prog, c, block, off, buffer, size);
+    return LOCKED_OP(get_mutex_by_id(fs_id), lfs_file_open, lfs, file, path,
+                     flags);
 }
 
-// Erase a block. A block must be erased before being programmed.
-// The state of an erased block is undefined. Negative error codes
-// are propogated to the user.
-// May return LFS_ERR_CORRUPT if the block should be considered bad.
-int mem_thread_erase(const struct lfs_config *c, lfs_block_t block)
+int mem_thread_close(unsigned fs_id, lfs_t *lfs, lfs_file_t *file)
 {
-    return LOCKED_OP(mem_lock, memory_erase, c, block);
+    return LOCKED_OP(get_mutex_by_id(fs_id), lfs_file_close, lfs, file);
 }
 
-// Sync the state of the underlying block device. Negative error codes
-// are propogated to the user.
-int mem_thread_sync(const struct lfs_config *c)
+lfs_ssize_t mem_thread_read_f(unsigned fs_id, lfs_t *lfs, lfs_file_t *file,
+                              void *buffer, lfs_size_t size)
 {
-    return LOCKED_OP(mem_lock, memory_sync, c);
+    return LOCKED_OP(get_mutex_by_id(fs_id), lfs_file_read, lfs, file, buffer,
+                     size);
 }
 
-int mem_thread_open(lfs_t *lfs, lfs_file_t *file, const char *path, int flags)
+lfs_ssize_t mem_thread_write_f(unsigned fs_id, lfs_t *lfs, lfs_file_t *file,
+                               const void *buffer, lfs_size_t size)
 {
-    return LOCKED_OP(global_lock, lfs_file_open, lfs, file, path, flags);
-}
-
-int mem_thread_close(lfs_t *lfs, lfs_file_t *file)
-{
-    return LOCKED_OP(global_lock, lfs_file_close, lfs, file);
-}
-
-lfs_ssize_t mem_thread_read_f(lfs_t *lfs, lfs_file_t *file, void *buffer,
-                              lfs_size_t size)
-{
-    return LOCKED_OP(global_lock, lfs_file_read, lfs, file, buffer, size);
-}
-
-lfs_ssize_t mem_thread_write_f(lfs_t *lfs, lfs_file_t *file, const void *buffer,
-                               lfs_size_t size)
-{
-    return LOCKED_OP(global_lock, lfs_file_write, lfs, file, buffer, size);
+    return LOCKED_OP(get_mutex_by_id(fs_id), lfs_file_write, lfs, file, buffer,
+                     size);
 }

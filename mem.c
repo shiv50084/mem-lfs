@@ -21,8 +21,9 @@ int memory_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
                 void *buffer, lfs_size_t size)
 {
     lfs_off_t base_offset = get_address(c->block_size, block) + off;
-    printf("%s: base offset: %u\n", __func__, base_offset);
-    memcpy(buffer, memory_storage + base_offset, size);
+    // printf("%s: base offset: %u\n", __func__, base_offset);
+    unsigned char *_memory = c->context;
+    memcpy(buffer, _memory + base_offset, size);
 
     return LFS_ERR_OK;
 }
@@ -34,8 +35,9 @@ int memory_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
                 const void *buffer, lfs_size_t size)
 {
     lfs_off_t base_offset = get_address(c->block_size, block) + off;
-    printf("%s: base offset: %u\n", __func__, base_offset);
-    memcpy(memory_storage + base_offset, buffer, size);
+    // printf("%s: base offset: %u\n", __func__, base_offset);
+    unsigned char *_memory = c->context;
+    memcpy(_memory + base_offset, buffer, size);
 
     return LFS_ERR_OK;
 }
@@ -47,7 +49,7 @@ int memory_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
 int memory_erase(const struct lfs_config *c, lfs_block_t block)
 {
     lfs_off_t base_offset = get_address(c->block_size, block);
-    printf("%s: base offset: %u\n", __func__, base_offset);
+    // printf("%s: base offset: %u\n", __func__, base_offset);
     // memset(memory_storage + base_offset, 0xff, c->block_size);
 
     return LFS_ERR_OK;
