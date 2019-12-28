@@ -6,6 +6,7 @@
 #include <string.h>
 
 static unsigned char memory_storage[MEMORY_STORAGE_SIZE];
+static unsigned char memory_storage2[MEMORY_STORAGE_SIZE];
 
 static inline size_t get_address(size_t block_size, lfs_block_t block)
 {
@@ -62,4 +63,9 @@ int memory_sync(const struct lfs_config *c)
 unsigned char *memory_storage_get(void)
 {
     return memory_storage;
+}
+
+unsigned char *memory_storage2_get(void)
+{
+    return memory_storage2;
 }

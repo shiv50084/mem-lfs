@@ -4,6 +4,8 @@
 #include <pthread.h>
 
 static pthread_mutex_t mem_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t global_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutexattr_t m_attr;
 
 #define LOCKED_OP(lock, fun, ...)                                              \
     ({                                                                         \
@@ -44,4 +46,26 @@ int mem_thread_erase(const struct lfs_config *c, lfs_block_t block)
 int mem_thread_sync(const struct lfs_config *c)
 {
     return LOCKED_OP(mem_lock, memory_sync, c);
+}
+
+int mem_thread_open(lfs_t *lfs, lfs_file_t *file, const char *path, int flags)
+{
+    return LOCKED_OP(global_lock, lfs_file_open, lfs, file, path, flags);
+}
+
+int mem_thread_close(lfs_t *lfs, lfs_file_t *file)
+{
+    return LOCKED_OP(global_lock, lfs_file_close, lfs, file);
+}
+
+lfs_ssize_t mem_thread_read_f(lfs_t *lfs, lfs_file_t *file, void *buffer,
+                              lfs_size_t size)
+{
+    return LOCKED_OP(global_lock, lfs_file_read, lfs, file, buffer, size);
+}
+
+lfs_ssize_t mem_thread_write_f(lfs_t *lfs, lfs_file_t *file, const void *buffer,
+                               lfs_size_t size)
+{
+    return LOCKED_OP(global_lock, lfs_file_write, lfs, file, buffer, size);
 }

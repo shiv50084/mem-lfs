@@ -28,5 +28,6 @@ int memory_erase(const struct lfs_config *c, lfs_block_t block);
 int memory_sync(const struct lfs_config *c);
 
 unsigned char *memory_storage_get(void);
+unsigned char *memory_storage2_get(void);
 
 #endif // MEM_LFS_MEM_H

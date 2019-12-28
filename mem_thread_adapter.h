@@ -24,4 +24,16 @@ int mem_thread_erase(const struct lfs_config *c, lfs_block_t block);
 // are propogated to the user.
 int mem_thread_sync(const struct lfs_config *c);
 
+//int mem_thread_open(lfs_t *fs, )
+int mem_thread_open(lfs_t *lfs, lfs_file_t *file,
+                  const char *path, int flags);
+
+int mem_thread_close(lfs_t *lfs, lfs_file_t *file);
+
+lfs_ssize_t mem_thread_read_f(lfs_t *lfs, lfs_file_t *file,
+                          void *buffer, lfs_size_t size);
+
+lfs_ssize_t mem_thread_write_f(lfs_t *lfs, lfs_file_t *file,
+                           const void *buffer, lfs_size_t size);
+
 #endif // MEM_LFS_MEM_THREAD_ADAPTER_H
