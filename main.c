@@ -12,13 +12,7 @@ static unsigned char lfs_prog_buffer[MEMORY_PAGE_SIZE];
 static unsigned char lfs_read_buffer[MEMORY_PAGE_SIZE];
 static unsigned char lfs_lookahead_buffer[MEMORY_PAGE_SIZE];
 
-static struct lfs_config cfg = {
-    // block device operations
-    .read = memory_read,
-    .prog = memory_prog,
-    .erase = memory_erase,
-    .sync = memory_sync,
-
+static const struct lfs_config_init cfg_init = {
     // block device configuration
     .read_size = MEMORY_PAGE_SIZE,
     .prog_size = MEMORY_PAGE_SIZE,
@@ -35,13 +29,7 @@ static unsigned char lfs_prog_buffer2[MEMORY_PAGE_SIZE];
 static unsigned char lfs_read_buffer2[MEMORY_PAGE_SIZE];
 static unsigned char lfs_lookahead_buffer2[MEMORY_PAGE_SIZE];
 
-static struct lfs_config cfg2 = {
-    // block device operations
-    .read = memory_read,
-    .prog = memory_prog,
-    .erase = memory_erase,
-    .sync = memory_sync,
-
+static const struct lfs_config_init cfg_init2 = {
     // block device configuration
     .read_size = MEMORY_PAGE_SIZE,
     .prog_size = MEMORY_PAGE_SIZE,
@@ -59,8 +47,48 @@ static void *task_2_handler(void *arg);
 static void *task_3_handler(void *arg);
 static void *task_4_handler(void *arg);
 
-lfs_t fs;
-lfs_t fs2;
+static lfs_t fs;
+static lfs_t fs2;
+static struct lfs_config cfg;
+static struct lfs_config cfg2;
+
+static int init_fs(void)
+{
+    memory_storage_config_init(&cfg, &cfg_init);
+    memory_storage_config_init(&cfg2, &cfg_init2);
+
+    cfg.context = memory_storage_get();
+    if (mem_thread_mount(MEM1, &fs, &cfg) != LFS_ERR_OK)
+    {
+        memory_storage_config_init(&cfg, &cfg_init);
+        cfg.context = memory_storage_get();
+        mem_thread_format(MEM1, &fs, &cfg);
+        memory_storage_config_init(&cfg, &cfg_init);
+        cfg.context = memory_storage_get();
+
+        if (mem_thread_mount(MEM1, &fs, &cfg) != LFS_ERR_OK)
+        {
+            return 1;
+        }
+    }
+
+    cfg2.context = memory_storage2_get();
+    if (mem_thread_mount(MEM2, &fs2, &cfg2) != LFS_ERR_OK)
+    {
+        memory_storage_config_init(&cfg2, &cfg_init2);
+        cfg2.context = memory_storage2_get();
+        mem_thread_format(MEM2, &fs2, &cfg2);
+        memory_storage_config_init(&cfg2, &cfg_init2);
+        cfg2.context = memory_storage2_get();
+
+        if (mem_thread_mount(MEM2, &fs2, &cfg2) != LFS_ERR_OK)
+        {
+            return 2;
+        }
+    }
+
+    return 0;
+}
 
 int main()
 {
@@ -83,26 +111,9 @@ int main()
         printf("%s: Unable to restore memory dump\n", __func__);
     }
 
-    cfg.context = memory_storage_get();
-    if (lfs_mount(&fs, &cfg) != LFS_ERR_OK)
+    if (init_fs() != 0)
     {
-        lfs_format(&fs, &cfg);
-
-        if (lfs_mount(&fs, &cfg) != LFS_ERR_OK)
-        {
-            return 1;
-        }
-    }
-
-    cfg2.context = memory_storage2_get();
-    if (lfs_mount(&fs2, &cfg2) != LFS_ERR_OK)
-    {
-        lfs_format(&fs2, &cfg2);
-
-        if (lfs_mount(&fs2, &cfg2) != LFS_ERR_OK)
-        {
-            return 2;
-        }
+        return 2;
     }
 
     pthread_create(&task_1, NULL, task_1_handler, NULL);
@@ -208,6 +219,40 @@ exit:
     return retval;
 }
 
+static int test_attribute(unsigned fs_id, const char *filename,
+                          unsigned char attr_type, void *buffer,
+                          size_t buffer_size)
+{
+    lfs_t *pfs = (fs_id == MEM1) ? &fs : &fs2;
+    int retval = 0;
+
+    if ((retval = mem_thread_setattr(fs_id, pfs, filename, attr_type, buffer,
+                                     buffer_size)) != LFS_ERR_OK)
+    {
+        printf("%s: Error attribute set [%d]\n", __func__, retval);
+        return retval;
+    }
+
+    unsigned char _tmp_buf[buffer_size];
+
+    memset(_tmp_buf, 0, buffer_size);
+
+    if ((retval = mem_thread_getattr(fs_id, pfs, filename, attr_type, _tmp_buf,
+                                     buffer_size)) < LFS_ERR_OK)
+    {
+        printf("%s: Error attribute get [%d]\n", __func__, retval);
+        return retval;
+    }
+
+    if (memcmp(_tmp_buf, buffer, retval) != 0)
+    {
+        printf("%s: Attribute differs\n", __func__);
+        return -1;
+    }
+
+    return retval;
+}
+
 static void *task_1_handler(void *arg)
 {
     lfs_file_t file = {0};
@@ -221,10 +266,13 @@ static void *task_1_handler(void *arg)
         "eejXKiGqZEegaMXqWDUUfqftvArCYURPjxDOHtkhmmjMGzHNwWiSxczpMkbRGtyfStTkhb"
         "yjMhTAjEVdgzCXMqFWtCUd";
     char buf[512];
+    unsigned char fs_attr = 22;
+    char attr_buf[] = "Attribute data";
 
     for (size_t i = 0; i < 128 * 64; ++i)
     {
-        int retval = file_write(MEM1, "file1", str, strlen(str), &file);
+        int retval =
+            file_write(MEM1, "file1", (unsigned char *)str, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
@@ -232,7 +280,8 @@ static void *task_1_handler(void *arg)
             goto exit;
         }
 
-        retval = file_read(MEM1, "file1", buf, strlen(str), &file);
+        retval =
+            file_read(MEM1, "file1", (unsigned char *)buf, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
@@ -248,6 +297,12 @@ static void *task_1_handler(void *arg)
         {
             printf("%s: Content equal\n", __func__);
         }
+
+        if (test_attribute(MEM1, "file1", fs_attr, attr_buf,
+                           strlen(attr_buf)) < LFS_ERR_OK)
+        {
+            printf("%s: Attribute error\n", __func__);
+        }
     }
 exit:
     pthread_exit(NULL);
@@ -255,6 +310,9 @@ exit:
 
 static void *task_2_handler(void *arg)
 {
+    const char *filename1 = "file2";
+    const char *filename2 = "file3";
+    const char *fname = filename1;
     lfs_file_t file = {0};
     const char *str =
         "qvAGTsWClryChbcMZxwaYTJrRFNWMxtREnKiCMRKrJbNrIFLmocLgNISBWWinLMTYjscrc"
@@ -269,7 +327,8 @@ static void *task_2_handler(void *arg)
 
     for (size_t i = 0; i < 128 * 64; ++i)
     {
-        int retval = file_write(MEM1, "file2", str, strlen(str), &file);
+        int retval =
+            file_write(MEM1, fname, (unsigned char *)str, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
@@ -277,7 +336,8 @@ static void *task_2_handler(void *arg)
             goto exit;
         }
 
-        retval = file_read(MEM1, "file2", buf, strlen(str), &file);
+        retval =
+            file_read(MEM1, fname, (unsigned char *)buf, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
@@ -293,6 +353,25 @@ static void *task_2_handler(void *arg)
         {
             printf("%s: Content equal\n", __func__);
         }
+
+        const char *new_fname = (i % 2 == 0) ? filename2 : filename1;
+
+        if (mem_thread_rename(MEM1, &fs, fname, new_fname) != LFS_ERR_OK)
+        {
+            printf("%s: Rename error\n", __func__);
+        }
+
+        fname = new_fname;
+    }
+
+    if (mem_thread_remove(MEM1, &fs, "file2") != LFS_ERR_OK)
+    {
+        printf("%s: File 2 remove error\n", __func__);
+    }
+
+    if (mem_thread_remove(MEM1, &fs, "file3") != LFS_ERR_OK)
+    {
+        printf("%s: File 3 remove error\n", __func__);
     }
 exit:
     pthread_exit(NULL);
@@ -314,7 +393,8 @@ static void *task_3_handler(void *arg)
 
     for (size_t i = 0; i < 128 * 64; ++i)
     {
-        int retval = file_write(MEM2, "file1", str, strlen(str), &file);
+        int retval =
+            file_write(MEM2, "file4", (unsigned char *)str, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
@@ -322,7 +402,8 @@ static void *task_3_handler(void *arg)
             goto exit;
         }
 
-        retval = file_read(MEM2, "file1", buf, strlen(str), &file);
+        retval =
+            file_read(MEM2, "file4", (unsigned char *)buf, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
@@ -359,7 +440,8 @@ static void *task_4_handler(void *arg)
 
     for (size_t i = 0; i < 128 * 64; ++i)
     {
-        int retval = file_write(MEM2, "file2", str, strlen(str), &file);
+        int retval =
+            file_write(MEM2, "file2", (unsigned char *)str, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {
@@ -367,7 +449,8 @@ static void *task_4_handler(void *arg)
             goto exit;
         }
 
-        retval = file_read(MEM2, "file2", buf, strlen(str), &file);
+        retval =
+            file_read(MEM2, "file2", (unsigned char *)buf, strlen(str), &file);
 
         if (retval != LFS_ERR_OK)
         {

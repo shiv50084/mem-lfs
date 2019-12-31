@@ -33,4 +33,21 @@ int memory_sync(const struct lfs_config *c);
 unsigned char *memory_storage_get(void);
 unsigned char *memory_storage2_get(void);
 
+struct lfs_config_init
+{
+    int block_cycles;
+    unsigned block_size;
+    unsigned block_count;
+    unsigned read_size;
+    unsigned prog_size;
+    unsigned cache_size;
+    unsigned lookahead_size;
+    unsigned char *prog_buffer;
+    unsigned char *lookahead_buffer;
+    unsigned char *read_buffer;
+};
+
+int memory_storage_config_init(struct lfs_config *c,
+                               const struct lfs_config_init *conf_init);
+
 #endif // MEM_LFS_MEM_H
